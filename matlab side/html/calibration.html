@@ -1,0 +1,339 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>calibration</title><meta name="generator" content="MATLAB 8.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2014-12-14"><meta name="DC.source" content="calibration.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, tt, code { font-size:12px; }
+pre { margin:0px 0px 20px; }
+pre.error { color:red; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">%Program for calibrating the thermometers. Data from the Arduino will be</span>
+<span class="comment">%recieved and displayed into a Temperature vs time graph. All data will be</span>
+<span class="comment">%recorded.</span>
+
+clc
+clear <span class="string">all</span>;
+
+<span class="comment">%%Serial connection is established with the arduino</span>
+
+<span class="comment">%Serial port used is requested to the user via a text box</span>
+
+prompt = {<span class="string">'Enter serial port'</span>};
+dgl_title = <span class="string">'Welcome'</span>;
+comPort= inputdlg(prompt,dgl_title)
+
+<span class="comment">%the arduino is set up</span>
+[s, flag]= setupSerial(comPort);
+
+<span class="comment">%the arduino runs its set up</span>
+disp(<span class="string">'Setting up devices...'</span>)
+setupCheck=<span class="string">'b'</span>;
+<span class="keyword">while</span> (setupCheck ~=<span class="string">'a'</span>)
+    setupCheck=fread(s,1,<span class="string">'uchar'</span>);    <span class="comment">%reads from the serial port a single binary element in 8bit precision unsigned charecter format until 'a' is read</span>
+<span class="keyword">end</span>
+
+time=0;
+
+disp(<span class="string">'Set up complete!'</span>)
+
+<span class="comment">%%Creating a log file where to log the data</span>
+log=logFile;
+
+<span class="comment">%%A figure is generated where the data will be printed</span>
+
+<span class="comment">%initialize the figure that we will plot as well as the axes and labels</span>
+<span class="keyword">if</span>(~exist(<span class="string">'h'</span>,<span class="string">'var'</span>)||~ishandle(h))
+    h=figure(1);
+<span class="keyword">end</span>
+
+set(gcf,<span class="string">'color'</span>,<span class="string">'white'</span>);
+title(<span class="string">'Real-time temperature data'</span>);
+xlabel(<span class="string">'time'</span>);
+ylabel(<span class="string">'temperature'</span>);
+ylim([20 45]);
+legend(<span class="string">'dall1'</span>,<span class="string">'dall2'</span>,<span class="string">'coupl1'</span>,<span class="string">'coupl2'</span>,<span class="string">'coupl3'</span>,<span class="string">'therm1'</span>,<span class="string">'therm2'</span>);
+grid <span class="string">on</span>;
+hold <span class="string">on</span>;
+drawnow
+
+<span class="comment">%a buffer and index is created</span>
+maxbufsize=2;       <span class="comment">%only 2 data will be taken in order to be able to draw properly the lines between one point and the next. This shouldn't be a problem as the data is recorded into a separate file anyway.</span>
+bufftemp1=zeros(maxbufsize);
+bufftemp2=zeros(maxbufsize);
+bufftemp3=zeros(maxbufsize);
+bufftemp4=zeros(maxbufsize);
+bufftemp5=zeros(maxbufsize);
+bufftemp6=zeros(maxbufsize);
+bufftemp7=zeros(maxbufsize);
+bufftime=zeros(maxbufsize);
+cont=1;
+
+disp(<span class="string">'Ready to record data!'</span>)
+
+
+i=1;    <span class="comment">%for simplicity sake, a no-end loop will be called in order to do the readings. To stop them the loop will be broken manually with the ctrl+c command</span>
+<span class="keyword">while</span> i&gt;0,
+          <span class="comment">%Temperature information is requested to the arduino (designated by the parameter 1)</span>
+
+  time=read(s,<span class="string">'M'</span>)/1000;
+
+  [temp1,temp2,temp3,temp4,temp5,temp6,temp7]=readTemp(s);        <span class="comment">%Time information is requested to the arduino (designated by the parameter 2)</span>
+
+
+  <span class="comment">%%Displaying in realtime</span>
+
+  <span class="comment">%save into buffer</span>
+  bufftemp1(cont)=temp1;
+  bufftemp2(cont)=temp2;
+  bufftemp3(cont)=temp3;
+  bufftemp4(cont)=temp4;
+  bufftemp5(cont)=temp5;
+  bufftemp6(cont)=temp6*4/100;
+  bufftemp7(cont)=temp7*4/100;
+  bufftime(cont)=time;
+
+  <span class="comment">%set dynamic x limits too show the last 30s</span>
+  xlim([time-30 time]);
+
+  <span class="comment">%plotting all buffered temperatures wrt time</span>
+  plot(bufftime,bufftemp1,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'r'</span>);
+  plot(bufftime,bufftemp2,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'b'</span>);
+  plot(bufftime,bufftemp3,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'g'</span>);
+  plot(bufftime,bufftemp4,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'c'</span>);
+  plot(bufftime,bufftemp5,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'m'</span>);
+  plot(bufftime,bufftemp6,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'y'</span>);
+  plot(bufftime,bufftemp7,<span class="string">'-.dk'</span>,<span class="string">'color'</span>,<span class="string">'k'</span>);
+
+  <span class="comment">%copiing all the data taken in this iteration to the log file</span>
+  fprintf(log,<span class="string">'%f'</span>,time);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp1);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp2);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp3);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp4);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp5);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp6);
+  fprintf(log,<span class="string">'\t'</span>);
+  fprintf(log,<span class="string">'%f'</span>,temp7);
+  fprintf(log,<span class="string">'\n'</span>);
+
+  drawnow
+
+  cont=cont+1;
+  <span class="keyword">if</span> (cont&gt;maxbufsize)
+      cont=1;
+  <span class="keyword">end</span>
+
+
+<span class="keyword">end</span>
+
+
+fclose(s);
+</pre><pre class="codeoutput">
+comPort = 
+
+     {}
+
+Setting up communication with the arduino...
+</pre><pre class="codeoutput">Error using serial (line 120)
+Cannot create: No constructor with appropriate signature exists in Java class com.mathworks.toolbox.instrument.SerialComm
+
+Error in setupSerial (line 14)
+s=serial(comPort,'BaudRate',9600,'Parity','none','DataBits',8,'StopBits',1, 'terminator',' ');      
+
+Error in calibration (line 17)
+[s, flag]= setupSerial(comPort);
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2013b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%Program for calibrating the thermometers. Data from the Arduino will be
+%recieved and displayed into a Temperature vs time graph. All data will be
+%recorded.
+
+clc
+clear all;
+
+%%Serial connection is established with the arduino
+
+%Serial port used is requested to the user via a text box
+
+prompt = {'Enter serial port'};
+dgl_title = 'Welcome';
+comPort= inputdlg(prompt,dgl_title)
+
+%the arduino is set up
+[s, flag]= setupSerial(comPort);
+
+%the arduino runs its set up
+disp('Setting up devices...')
+setupCheck='b';
+while (setupCheck ~='a')
+    setupCheck=fread(s,1,'uchar');    %reads from the serial port a single binary element in 8bit precision unsigned charecter format until 'a' is read
+end
+
+time=0;
+
+disp('Set up complete!')
+
+%%Creating a log file where to log the data
+log=logFile;
+
+%%A figure is generated where the data will be printed
+
+%initialize the figure that we will plot as well as the axes and labels
+if(~exist('h','var')||~ishandle(h))
+    h=figure(1);
+end
+
+set(gcf,'color','white');
+title('Real-time temperature data');
+xlabel('time');
+ylabel('temperature');
+ylim([20 45]);
+legend('dall1','dall2','coupl1','coupl2','coupl3','therm1','therm2');
+grid on;
+hold on;
+drawnow
+
+%a buffer and index is created
+maxbufsize=2;       %only 2 data will be taken in order to be able to draw properly the lines between one point and the next. This shouldn't be a problem as the data is recorded into a separate file anyway.
+bufftemp1=zeros(maxbufsize);
+bufftemp2=zeros(maxbufsize);
+bufftemp3=zeros(maxbufsize);
+bufftemp4=zeros(maxbufsize);
+bufftemp5=zeros(maxbufsize);
+bufftemp6=zeros(maxbufsize);
+bufftemp7=zeros(maxbufsize);
+bufftime=zeros(maxbufsize);
+cont=1;
+
+disp('Ready to record data!')
+
+  
+i=1;    %for simplicity sake, a no-end loop will be called in order to do the readings. To stop them the loop will be broken manually with the ctrl+c command
+while i>0,
+          %Temperature information is requested to the arduino (designated by the parameter 1)
+  
+  time=read(s,'M')/1000;
+  
+  [temp1,temp2,temp3,temp4,temp5,temp6,temp7]=readTemp(s);        %Time information is requested to the arduino (designated by the parameter 2)
+
+  
+  %%Displaying in realtime
+  
+  %save into buffer
+  bufftemp1(cont)=temp1;
+  bufftemp2(cont)=temp2;
+  bufftemp3(cont)=temp3;
+  bufftemp4(cont)=temp4;
+  bufftemp5(cont)=temp5;
+  bufftemp6(cont)=temp6*4/100;
+  bufftemp7(cont)=temp7*4/100;
+  bufftime(cont)=time;
+  
+  %set dynamic x limits too show the last 30s
+  xlim([time-30 time]);
+  
+  %plotting all buffered temperatures wrt time
+  plot(bufftime,bufftemp1,'-.dk','color','r');
+  plot(bufftime,bufftemp2,'-.dk','color','b');
+  plot(bufftime,bufftemp3,'-.dk','color','g');
+  plot(bufftime,bufftemp4,'-.dk','color','c');
+  plot(bufftime,bufftemp5,'-.dk','color','m');
+  plot(bufftime,bufftemp6,'-.dk','color','y');
+  plot(bufftime,bufftemp7,'-.dk','color','k');
+  
+  %copiing all the data taken in this iteration to the log file
+  fprintf(log,'%f',time);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp1);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp2);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp3);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp4);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp5);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp6);
+  fprintf(log,'\t');
+  fprintf(log,'%f',temp7);
+  fprintf(log,'\n');
+
+  drawnow
+
+  cont=cont+1;
+  if (cont>maxbufsize)
+      cont=1;
+  end
+  
+
+end
+
+
+fclose(s);
+##### SOURCE END #####
+--></body></html>
